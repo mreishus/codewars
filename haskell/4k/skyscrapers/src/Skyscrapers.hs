@@ -18,13 +18,28 @@ type UnsolvedPuzzle = [[Square]]
 
 -- fixme
 solve :: Clues -> Puzzle
-solve _ = [[1, 3, 4, 2], [4, 2, 1, 3], [3, 4, 2, 1], [2, 1, 3, 4]]
+solve []    = []
+solve clues = convertBoard $ fix emptyBoard clues
+
+convertBoard :: [[Square]] -> Puzzle
+convertBoard board = map convertRow board
+  where
+    convertRow row = map convertSquare row
+
+convertSquare :: Square -> Int
+convertSquare (Possible _) = 99
+convertSquare (Known x)    = x
+
+emptyBoard :: [[Square]]
+emptyBoard = replicate 4 $ replicate 4 sq
+  where
+    sq = Possible [1, 2, 3, 4]
 
 -- try
 myClues :: Clues
 myClues = [[2, 2, 1, 3], [2, 2, 3, 1], [1, 2, 2, 3], [3, 2, 1, 3]]
 
-mySolve = fix puzzleStart myClues
+mySolve = fix emptyBoard myClues
 
 fix b clues
   | b == fixedBoard = fixedBoard
@@ -43,12 +58,8 @@ allCombs = map (\x -> (x, visibleScrapers x)) $ permutations [1, 2, 3, 4]
 -- output: [[4,3,2,1],[4,2,3,1],[4,1,2,3],[4,2,1,3],[4,1,3,2],[4,3,1,2]]
 -- (All combos with 1 building visible)
 combsForHintValue :: Int -> [[Int]]
+combsForHintValue 0  = map fst allCombs
 combsForHintValue hv = map fst $ filter (\x -> snd x == hv) allCombs
-
-puzzleStart :: UnsolvedPuzzle
-puzzleStart = replicate 4 $ replicate 4 sq
-  where
-    sq = Possible [1, 2, 3, 4]
 
 -- Given a row/column like [1, 2, 3, 4], how many scrapers are visible?
 -- [1, 2, 3, 4] = 4 (See all 4)
@@ -137,26 +148,17 @@ parseClue board (i, hv) =
     combs = combsForHintValue hv -- [ [3,2,1,4], [3,1,2,4] ... ]
     combs' = removeInvalidCombs board i combs
 
-t1 board (i, hv) = combs
-  where
-    combs = combsForHintValue hv -- [ [3,2,1,4], [3,1,2,4] ... ]
-    combs' = removeInvalidCombs board i combs
-
-t2 board (i, hv) = combs'
-  where
-    combs = combsForHintValue hv -- [ [3,2,1,4], [3,1,2,4] ... ]
-    combs' = removeInvalidCombs board i combs
-
 -- boardView [ Known 3, Possible [1, 2, 3], Possible [1, 2] ]
-removeInvalidCombs board hi combs = filter (asdf boardView) combs
+removeInvalidCombs :: [[Square]] -> Int -> [[Int]] -> [[Int]]
+removeInvalidCombs board hi combs = filter (validateComb boardView) combs
   where
     boardView = boardRowFromI board hi
 
 --hasPossibleValue :: Int -> Square -> Bool
 -- Comb = [4, 2, 1, 3]
 -- BoardView = [Known 1, .. ]
-asdf :: [Square] -> [Int] -> Bool
-asdf boardView comb = and truths
+validateComb :: [Square] -> [Int] -> Bool
+validateComb boardView comb = and truths
   where
     truths = mapIL (\i x -> hasValue x (boardView !! i)) comb
 
@@ -192,21 +194,24 @@ updateBoard board x y newsq = replaceNth y row board
     row = replaceNth x newsq (board !! y)
 
 -- Ok, we also want to use
+fixBoardRows :: [[Square]] -> [[Square]]
 fixBoardRows board = map fixRow board
 
+fixBoardCols :: [[Square]] -> [[Square]]
 fixBoardCols board = transpose $ map fixRow (transpose board)
 
 -- We are bypassing the constraint mechanism and simply fixing the rows individually.
-row_ = [Known 4, Possible [1, 2], Possible [1, 2], Possible [1, 2, 3]]
-
+fixRow :: [Square] -> [Square]
 fixRow row = foldl fixRowNum row [1, 2, 3, 4]
 
 --constrainBoard board cs = foldl constrainBoard1 board cs
+fixRowNum :: [Square] -> Int -> [Square]
 fixRowNum row x =
   case reducable row x of
     True  -> replacePossibleWithKnown row x
     False -> row
 
+replacePossibleWithKnown :: [Square] -> Int -> [Square]
 replacePossibleWithKnown row x = map fixCell row
   where
     fixCell cell =
