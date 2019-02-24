@@ -6,8 +6,9 @@ def solve_puzzle(clues)
   board = empty_board
   old_board = []
 
-  while (old_board <=> board) != 0
+  while old_board != board
     old_board = board.clone
+    board = fix_one_round(board, clues)
     board = fix_one_round(board, clues)
   end
 

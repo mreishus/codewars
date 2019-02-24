@@ -37,7 +37,6 @@ describe "Skyscrapers" do
                 
     actual = solve_puzzle clues
     expect(actual).to eq(expected)
-    #Test.assert_equals(actual, expected)
   end    
   it "can solve 6x6 puzzle 2" do
     clues = [ 0, 0, 0, 2, 2, 0,
@@ -54,7 +53,6 @@ describe "Skyscrapers" do
                 
     actual = solve_puzzle clues
     expect(actual).to eq(expected)
-    #Test.assert_equals(actual, expected)
   end
   it ("can solve 6x6 puzzle 3") do
     clues = [ 0, 3, 0, 5, 3, 4, 
@@ -71,7 +69,6 @@ describe "Skyscrapers" do
                 
     actual = solve_puzzle(clues)
     expect(actual).to eq(expected)
-    #Test.assert_equals(actual, expected)
   end
 
 end
