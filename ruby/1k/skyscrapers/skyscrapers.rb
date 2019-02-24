@@ -26,6 +26,8 @@ def fix_one_round(board, clues)
   board = constrain_board(board, cs)
   board = fix_board_rows(board)
   board = fix_board_columns(board)
+  board = fix_board_rows(board)
+  board = fix_board_columns(board)
   board
 end
 
@@ -167,8 +169,27 @@ end
 # Tested via IRB.  See haskell :(
 def remove_invalid_combs(board, hi, combs_pre)
   board_view = board_row_from_i(board, hi)
-  r = combs_pre.select{ |c| validate_comb(board_view, c) }
-  r
+
+  # Examples of board_view:
+  # [[6], [2], [7], [3], [1], [5], [4]]
+  # [[5], [3], [1, 2], [1, 2], [6], [4], [7]]
+  # [[4], [6], [3], [1, 2, 3], [2], [7], [5]]
+
+  fbv = board_view.flatten
+  if fbv.length == SIZE
+    return [fbv]
+  end
+
+  combs_pre = combs_pre.select do |c| 
+    board_view[0].include?( c[0] ) && board_view[1].include?( c[1] ) && board_view[2].include?( c[2] ) && board_view[3].include?( c[3] ) && board_view[4].include?( c[4] ) && board_view[5].include?( c[5] ) && board_view[6].include?( c[6] )
+  end
+
+  #pp '---'
+  #pp board_view
+  #pp '--'
+
+  ##r = combs_pre.select{ |c| validate_comb(board_view, c) }
+  ##r
 end
 
 # returns true: validate_comb( [ [1,2,3,4], [1,2,3,4], [1,2,3,4], [1,2,3,4] ], [4,3,2,1] )
@@ -237,16 +258,16 @@ def reducable(row, x)
 end
 
 def main
-      #actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 5,2,2,2,2,4,1]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
+    #actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 5,2,2,2,2,4,1]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
     #result = RubyProf.profile do
-      actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 5,2,2,2,0,0,0]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
+      actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 0,0,0,0,0,0,0]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
       expected = [ [7,6,2,1,5,4,3],
-	  [1,3,5,4,2,7,6],
-	  [6,5,4,7,3,2,1],
-	  [5,1,7,6,4,3,2],
-	  [4,2,1,3,7,6,5],
-	  [3,7,6,2,1,5,4],
-	  [2,4,3,5,6,1,7] ]
+          [1,3,5,4,2,7,6],
+          [6,5,4,7,3,2,1],
+          [5,1,7,6,4,3,2],
+          [4,2,1,3,7,6,5],
+          [3,7,6,2,1,5,4],
+          [2,4,3,5,6,1,7] ]
       puts "Did it work?"
       pp actual == expected
     #end
