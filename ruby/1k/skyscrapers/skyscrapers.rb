@@ -4,14 +4,16 @@
 SIZE = 7
 
 def solve_puzzle(clues)
+  RubyVM::InstructionSequence.compile_option = {
+    tailcall_optimization: true,
+    trace_instruction: false
+  }
+
   $combs_for_hv = Hash.new
   make_all_combs
-  board = empty_board
 
-  while true
-    board = fix_one_round(board, clues)
-    break unless fixes_needed(board)
-  end
+  blacklisted_boards = []
+  board = solve_boards([empty_board], clues, blacklisted_boards)
 
   # Clean up, assuming we fixed it
   board.map do |row|
@@ -21,8 +23,57 @@ def solve_puzzle(clues)
   end
 end
 
-def fix_one_round(board, clues)
-  cs = parse_clues(board, clues)
+def solve_boards(boards, clues, blacklisted_boards)
+  to_add = []
+
+  boards.each_index do |i|
+    next if blacklisted_boards.include?(i)
+
+    c = checksum(boards[i])
+    boards[i] = fix_one_round(boards[i], clues, i)
+    c2 = checksum(boards[i])
+
+    if invalid_board(boards[i])
+      blacklisted_boards.push(i)
+    end
+
+    if !fixes_needed(boards[i])
+      return boards[i]
+    elsif c == c2
+      blacklisted_boards.push(i)
+      to_add = to_add.concat(split_board(boards[i]))
+    end
+  end
+
+  solve_boards(boards.concat(to_add), clues, blacklisted_boards)
+end
+
+def checksum(board)
+  board.flatten.sum
+end
+
+def split_board(board_in)
+  return_boards = []
+
+  0.upto(SIZE - 1) do |y|
+    0.upto(SIZE - 1) do |x|
+      next unless board_in[y][x].length > 1
+      board_in[y][x].each do |poss_value|
+        this_board = deep_copy(board_in)
+        this_board[y][x] = [poss_value]
+        return_boards.push this_board
+      end
+      return return_boards
+    end
+  end
+end
+
+def deep_copy(o)
+  Marshal.load(Marshal.dump(o))
+end
+
+def fix_one_round(board, clues, board_num)
+  cs = parse_clues(board, clues, board_num)
   board = constrain_board(board, cs)
   board = fix_board_rows(board)
   board = fix_board_columns(board)
@@ -34,9 +85,20 @@ end
 def fixes_needed(board)
   0.upto(SIZE - 1) do |y|
     0.upto(SIZE - 1) do |x|
-      return true if board[y][x].length > 1
+      return true if board[y][x].length > 1 || board[y][x] == nil || board[y][x] == []
     end
   end
+
+  return false
+end
+
+def invalid_board(board)
+  0.upto(SIZE - 1) do |y|
+    0.upto(SIZE - 1) do |x|
+      return true if board[y][x] == nil || board[y][x] == []
+    end
+  end
+
   return false
 end
 
@@ -62,6 +124,7 @@ def all_combs
 end
 
 def make_all_combs
+  return unless $all_combs == nil
   $all_combs = (1..SIZE).to_a.permutation.to_a.map do |comb|
     {comb: comb, visible_scrapers: visible_scrapers(comb) }
   end
@@ -137,31 +200,32 @@ def board_row_from_i(board, i)
 end
 
 
-def parse_clues(board, clues)
+def parse_clues(board, clues, board_num)
   r = clues.map.with_index do |val, idx|
-    parse_clue(board, idx, val)
+    parse_clue(board, idx, val, board_num)
   end
   r.flatten
 end
 
 # See haskell version for docs
 # Board -> hintindex -> hintvalue -> [Constraint]
-def parse_clue(board, i, hv) #4.387 - most of which is remove_invalid_combs
+def parse_clue(board, i, hv, board_num) #4.387 - most of which is remove_invalid_combs
   ## Global Var Optimization so we remember which combs we have removed
-  comb_key = i.to_s + "_" + hv.to_s
+  comb_key = i.to_s + "_" + hv.to_s + "_" + board_num.to_s
   if ($combs_for_hv[comb_key] == nil)
     combs_pre = combs_for_hint_value(hv) #.3
-    combs = remove_invalid_combs(board, i, combs_pre) #3.97
+    $combs_for_hv[comb_key] = remove_invalid_combs(board, i, combs_pre) #3.97
   else
-    combs = remove_invalid_combs(board, i, $combs_for_hv[comb_key]) #3.97
+    $combs_for_hv[comb_key] = remove_invalid_combs(board, i, $combs_for_hv[comb_key]) #3.97
   end
-
-  $combs_for_hv[comb_key] = combs
 
   coords = hint_idx_to_coord(i) #nothing
 
+  # [1, 2], [3, 4]
+  # [1, 2, 3, 4],  [4, 3, 2, 1], [2, 3, 4, 1]
+
   coords.map.with_index do |coord, idx|
-    possibilities = combs.map{ |a|  a[idx] }.uniq
+    possibilities = $combs_for_hv[comb_key].map{ |a|  a[idx] }.uniq
     {x: coord[:x], y: coord[:y], possibilities: possibilities}
   end
 end
@@ -178,9 +242,11 @@ def remove_invalid_combs(board, hi, combs_pre)
   fbv = board_view.flatten
   if fbv.length == SIZE
     return [fbv]
+  elsif fbv.length == SIZE * SIZE
+    return combs_pre
   end
 
-  combs_pre = combs_pre.select do |c| 
+  combs_pre.select do |c|
     board_view[0].include?( c[0] ) && board_view[1].include?( c[1] ) && board_view[2].include?( c[2] ) && board_view[3].include?( c[3] ) && board_view[4].include?( c[4] ) && board_view[5].include?( c[5] ) && board_view[6].include?( c[6] )
   end
 
