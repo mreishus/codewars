@@ -1,9 +1,10 @@
 #!/usr/bin/ruby
-require 'ruby-prof'
+#require 'ruby-prof'
 
 SIZE = 7
 
 def solve_puzzle(clues)
+  $combs_for_hv = Hash.new
   make_all_combs
   board = empty_board
 
@@ -144,8 +145,17 @@ end
 # See haskell version for docs
 # Board -> hintindex -> hintvalue -> [Constraint]
 def parse_clue(board, i, hv) #4.387 - most of which is remove_invalid_combs
-  combs_pre = combs_for_hint_value(hv) #.3
-  combs = remove_invalid_combs(board, i, combs_pre) #3.97
+  ## Global Var Optimization so we remember which combs we have removed
+  comb_key = i.to_s + "_" + hv.to_s
+  if ($combs_for_hv[comb_key] == nil)
+    combs_pre = combs_for_hint_value(hv) #.3
+    combs = remove_invalid_combs(board, i, combs_pre) #3.97
+  else
+    combs = remove_invalid_combs(board, i, $combs_for_hv[comb_key]) #3.97
+  end
+
+  $combs_for_hv[comb_key] = combs
+
   coords = hint_idx_to_coord(i) #nothing
 
   coords.map.with_index do |coord, idx|
@@ -227,8 +237,9 @@ def reducable(row, x)
 end
 
 def main
+      #actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 5,2,2,2,2,4,1]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
     #result = RubyProf.profile do
-      actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 5,2,2,2,2,4,1]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
+      actual = solve_puzzle([0,2,3,0,2,0,0, 5,0,4,5,0,4,0, 0,4,2,0,0,0,6, 5,2,2,2,0,0,0]) # for a _very_ hard puzzle, replace the last 7 values with zeroes
       expected = [ [7,6,2,1,5,4,3],
 	  [1,3,5,4,2,7,6],
 	  [6,5,4,7,3,2,1],
