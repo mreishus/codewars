@@ -6,12 +6,10 @@ SIZE = 7
 def solve_puzzle(clues)
   make_all_combs
   board = empty_board
-  old_board = []
 
-  while old_board != board
-    old_board = board.clone
+  while true
     board = fix_one_round(board, clues)
-    board = fix_one_round(board, clues)
+    break unless fixes_needed(board)
   end
 
   # Clean up, assuming we fixed it
@@ -28,6 +26,15 @@ def fix_one_round(board, clues)
   board = fix_board_rows(board)
   board = fix_board_columns(board)
   board
+end
+
+def fixes_needed(board)
+  0.upto(SIZE - 1) do |y|
+    0.upto(SIZE - 1) do |x|
+      return true if board[y][x].length > 1
+    end
+  end
+  return false
 end
 
 ###################
