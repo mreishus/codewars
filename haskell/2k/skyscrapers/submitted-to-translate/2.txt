@@ -1,0 +1,8 @@
+module Skyscrapers6 where
+
+type Clues = [[Int]]
+type Puzzle = [[Int]]
+
+
+solve :: Clues -> Puzzle
+solve _ = []
