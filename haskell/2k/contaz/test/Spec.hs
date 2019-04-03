@@ -4,7 +4,7 @@ import           Test.Hspec
 spec :: Spec
 spec = do
   it "Example Tests" $ do
-    freakContazSequence "d" `shouldBe` 3
+    freakContazSequence "d" `shouldBe` 2
     freakContazSequence "D" `shouldBe` 3
     freakContazSequence "U" `shouldBe` 4
     freakContazSequence "dU" `shouldBe` 11
