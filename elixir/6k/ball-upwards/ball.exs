@@ -2,6 +2,7 @@
 
 defmodule Maxball do
   # h = v*t - (0.5*g*t*t)
+  # h' = v - 2 * (0.5*g*t)
   # h' = v - g*t
   # h' = 0 = v - g*t
   # g*t = v
